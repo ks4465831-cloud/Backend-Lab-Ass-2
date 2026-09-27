@@ -1,13 +1,9 @@
-// Logs request method, URL and time.
+const logger = (req, res, next) => {
+    console.log(
+        `${new Date().toISOString()} - ${req.method} ${req.originalUrl}`
+    );
 
-function logger(req, res, next) {
-  const currentTime = new Date().toLocaleString();
-
-  console.log(
-    `[${currentTime}] ${req.method} ${req.originalUrl}`
-  );
-
-  next();
-}
+    next();
+};
 
 module.exports = logger;

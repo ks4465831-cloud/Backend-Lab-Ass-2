@@ -1,289 +1,170 @@
 const express = require("express");
-
 const router = express.Router();
 
-const students = require("../data/students");
+let students = require("../data/students");
 
-// ==================================================
-// GET ALL STUDENTS
 // GET /students
-// ==================================================
-
+// Get all students
 router.get("/", (req, res) => {
-  res.status(200).json({
-    success: true,
-    totalStudents: students.length,
-    data: students
-  });
+    try {
+        res.status(200).json(students);
+    } catch (error) {
+        res.status(500).json({
+            message: "Server error",
+            error: error.message
+        });
+    }
 });
 
-// ==================================================
-// GET STUDENT BY ID
+
 // GET /students/:id
-// ==================================================
-
+// Get student by ID
 router.get("/:id", (req, res) => {
-  const studentId = Number(req.params.id);
+    try {
+        const id = parseInt(req.params.id);
 
-  // Validate ID
-  if (!Number.isInteger(studentId)) {
-    return res.status(400).json({
-      success: false,
-      message: "Student ID must be a valid number"
-    });
-  }
+        if (isNaN(id)) {
+            return res.status(400).json({
+                message: "Invalid student ID"
+            });
+        }
 
-  const student = students.find(
-    (student) => student.id === studentId
-  );
+        const student = students.find(s => s.id === id);
 
-  // Student not found
-  if (!student) {
-    return res.status(404).json({
-      success: false,
-      message: `Student with ID ${studentId} not found`
-    });
-  }
+        if (!student) {
+            return res.status(404).json({
+                message: "Student not found"
+            });
+        }
 
-  res.status(200).json({
-    success: true,
-    data: student
-  });
+        res.status(200).json(student);
+
+    } catch (error) {
+        res.status(500).json({
+            message: "Server error",
+            error: error.message
+        });
+    }
 });
 
-// ==================================================
-// ADD NEW STUDENT
+
 // POST /students
-// ==================================================
-
+// Add new student
 router.post("/", (req, res) => {
-  const { name, age, course, email } = req.body;
+    try {
+        const { name, course, age } = req.body;
 
-  // Required fields
-  if (!name || age === undefined || !course) {
-    return res.status(400).json({
-      success: false,
-      message: "Name, age and course are required"
-    });
-  }
+        if (!name || !course || age === undefined) {
+            return res.status(400).json({
+                message: "Name, course and age are required"
+            });
+        }
 
-  // Validate name
-  if (
-    typeof name !== "string" ||
-    name.trim() === ""
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "Name must be a valid string"
-    });
-  }
+        const newStudent = {
+            id: students.length > 0
+                ? students[students.length - 1].id + 1
+                : 1,
+            name: name,
+            course: course,
+            age: age
+        };
 
-  // Validate age
-  const studentAge = Number(age);
+        students.push(newStudent);
 
-  if (
-    !Number.isFinite(studentAge) ||
-    studentAge <= 0
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "Age must be a positive number"
-    });
-  }
+        res.status(201).json({
+            message: "Student created successfully",
+            student: newStudent
+        });
 
-  // Validate course
-  if (
-    typeof course !== "string" ||
-    course.trim() === ""
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "Course must be a valid string"
-    });
-  }
-
-  // Generate new ID
-  const newId =
-    students.length > 0
-      ? Math.max(
-          ...students.map((student) => student.id)
-        ) + 1
-      : 1;
-
-  // Create student object
-  const newStudent = {
-    id: newId,
-    name: name.trim(),
-    age: studentAge,
-    course: course.trim(),
-    email:
-      typeof email === "string" &&
-      email.trim() !== ""
-        ? email.trim()
-        : `student${newId}@example.com`
-  };
-
-  // Add student to array
-  students.push(newStudent);
-
-  res.status(201).json({
-    success: true,
-    message: "Student added successfully",
-    data: newStudent
-  });
+    } catch (error) {
+        res.status(500).json({
+            message: "Server error",
+            error: error.message
+        });
+    }
 });
 
-// ==================================================
-// UPDATE STUDENT
+
 // PUT /students/:id
-// ==================================================
-
+// Update student
 router.put("/:id", (req, res) => {
-  const studentId = Number(req.params.id);
+    try {
+        const id = parseInt(req.params.id);
 
-  // Validate ID
-  if (!Number.isInteger(studentId)) {
-    return res.status(400).json({
-      success: false,
-      message: "Student ID must be a valid number"
-    });
-  }
+        if (isNaN(id)) {
+            return res.status(400).json({
+                message: "Invalid student ID"
+            });
+        }
 
-  const student = students.find(
-    (student) => student.id === studentId
-  );
+        const student = students.find(s => s.id === id);
 
-  // Student not found
-  if (!student) {
-    return res.status(404).json({
-      success: false,
-      message: `Student with ID ${studentId} not found`
-    });
-  }
+        if (!student) {
+            return res.status(404).json({
+                message: "Student not found"
+            });
+        }
 
-  const { name, age, course, email } = req.body;
+        const { name, course, age } = req.body;
 
-  // Check whether any field was provided
-  if (
-    name === undefined &&
-    age === undefined &&
-    course === undefined &&
-    email === undefined
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "Provide at least one field to update"
-    });
-  }
+        if (!name || !course || age === undefined) {
+            return res.status(400).json({
+                message: "Name, course and age are required"
+            });
+        }
 
-  // Update name
-  if (name !== undefined) {
-    if (
-      typeof name !== "string" ||
-      name.trim() === ""
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Name must be a valid string"
-      });
+        student.name = name;
+        student.course = course;
+        student.age = age;
+
+        res.status(200).json({
+            message: "Student updated successfully",
+            student: student
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: "Server error",
+            error: error.message
+        });
     }
-
-    student.name = name.trim();
-  }
-
-  // Update age
-  if (age !== undefined) {
-    const studentAge = Number(age);
-
-    if (
-      !Number.isFinite(studentAge) ||
-      studentAge <= 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Age must be a positive number"
-      });
-    }
-
-    student.age = studentAge;
-  }
-
-  // Update course
-  if (course !== undefined) {
-    if (
-      typeof course !== "string" ||
-      course.trim() === ""
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Course must be a valid string"
-      });
-    }
-
-    student.course = course.trim();
-  }
-
-  // Update email
-  if (email !== undefined) {
-    if (
-      typeof email !== "string" ||
-      email.trim() === ""
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Email must be a valid string"
-      });
-    }
-
-    student.email = email.trim();
-  }
-
-  res.status(200).json({
-    success: true,
-    message: "Student updated successfully",
-    data: student
-  });
 });
 
-// ==================================================
-// DELETE STUDENT
+
 // DELETE /students/:id
-// ==================================================
-
+// Delete student
 router.delete("/:id", (req, res) => {
-  const studentId = Number(req.params.id);
+    try {
+        const id = parseInt(req.params.id);
 
-  // Validate ID
-  if (!Number.isInteger(studentId)) {
-    return res.status(400).json({
-      success: false,
-      message: "Student ID must be a valid number"
-    });
-  }
+        if (isNaN(id)) {
+            return res.status(400).json({
+                message: "Invalid student ID"
+            });
+        }
 
-  const studentIndex = students.findIndex(
-    (student) => student.id === studentId
-  );
+        const index = students.findIndex(s => s.id === id);
 
-  // Student not found
-  if (studentIndex === -1) {
-    return res.status(404).json({
-      success: false,
-      message: `Student with ID ${studentId} not found`
-    });
-  }
+        if (index === -1) {
+            return res.status(404).json({
+                message: "Student not found"
+            });
+        }
 
-  // Remove student
-  const deletedStudent = students.splice(
-    studentIndex,
-    1
-  )[0];
+        const deletedStudent = students.splice(index, 1);
 
-  res.status(200).json({
-    success: true,
-    message: "Student deleted successfully",
-    data: deletedStudent
-  });
+        res.status(200).json({
+            message: "Student deleted successfully",
+            student: deletedStudent[0]
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: "Server error",
+            error: error.message
+        });
+    }
 });
+
 
 module.exports = router;
